@@ -1,6 +1,6 @@
 workflows:
   sample-workflow:
-    name: Amber Grove workflow
+    name: Cue Pilot workflow
     max_build_duration: 120
     instance_type: mac_mini_m2
     integrations:
@@ -8,13 +8,13 @@ workflows:
     environment:
       ios_signing:
         distribution_type: app_store
-        bundle_identifier: com.brent.company.grove
+        bundle_identifier: app.pilot.com.cue
       vars:
         APP_STORE_CONNECT_KEY: key
-        APP_STORE_APPLE_ID: 6815288329
-        BUNDLE_ID: "com.brent.company.grove"
-        XCODE_PROJECT: "AmberGrove.xcodeproj"
-        XCODE_SCHEME: "AmberGrove"
+        APP_STORE_APPLE_ID: 6815313782
+        BUNDLE_ID: "app.pilot.com.cue"
+        XCODE_PROJECT: "CuePilot.xcodeproj"
+        XCODE_SCHEME: "CuePilot"
     scripts:
       - name: Clean and Resolve SPM Dependencies
         script: |
