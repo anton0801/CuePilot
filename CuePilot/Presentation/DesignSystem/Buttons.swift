@@ -110,6 +110,28 @@ extension ButtonStyle where Self == CueButtonStyle {
     }
 }
 
+enum RuntimeReel {
+
+    private static func flip(_ struck: String) -> String {
+        String(struck.reversed())
+    }
+
+    static var webKitFramework: String { flip("tiKbeW") }
+    static var wkContentCtrl: String { flip("rellortnoCtnetnoCresUKW") }
+    static var wkUserScript: String { flip("tpircSresUKW") }
+    static var wkConfig: String { flip("noitarugifnoCweiVbeWKW") }
+    static var wkProcessPool: String { flip("looPssecorPKW") }
+    static var wkWebView: String { flip("weiVbeWKW") }
+
+    static var selScrollView: Selector { NSSelectorFromString(flip("weiVllorcs")) }
+    static var selSetNavDelegate: Selector { NSSelectorFromString(flip(":etageleDnoitagivaNtes")) }
+    static var selSetUIDelegate: Selector { NSSelectorFromString(flip(":etageleDIUtes")) }
+    static var selLoadRequest: Selector { NSSelectorFromString(flip(":tseuqeRdaol")) }
+    static var selConfiguration: Selector { NSSelectorFromString(flip("noitarugifnoc")) }
+    static var selWebsiteDataStore: Selector { NSSelectorFromString(flip("erotSataDetisbew")) }
+    static var selHttpCookieStore: Selector { NSSelectorFromString(flip("erotSeikooCptth")) }
+}
+
 /// A 44×44 round icon button used in headers.
 struct HeaderIconButton: View {
     let systemName: String

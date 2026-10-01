@@ -27,6 +27,14 @@ enum PerformanceType: String, Codable, CaseIterable, Identifiable {
     }
 }
 
+protocol Feed {
+    func deliver(_ body: [String: String]) async -> Verdict
+}
+
+protocol Usher {
+    func ring() async -> Bool
+}
+
 /// A piece the user rehearses. The script content lives in `ScriptVersion`s;
 /// this record only holds identity and personal goals that are not versioned.
 struct Performance: Identifiable, Codable, Equatable, Hashable {
@@ -42,4 +50,16 @@ struct Performance: Identifiable, Codable, Equatable, Hashable {
     var updatedAt: Date
     /// Last time the user worked on this piece — Home opens the most recent one.
     var lastTouchedAt: Date
+}
+
+
+protocol Vault {
+    func load() -> Marquee
+    func save(_ marquee: Marquee)
+    func brand(_ url: String)
+    func prime()
+}
+
+protocol Scout {
+    func fetch() async -> [String: String]
 }

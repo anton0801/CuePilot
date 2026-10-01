@@ -42,6 +42,7 @@ enum Route: Hashable {
     case review(runID: UUID)
     case compare(ComparePreset)
     case versions(performanceID: UUID, highlight: UUID?)
+    case segmentHistory(performanceID: UUID)
     case export(ExportPreset)
     case settings
 }

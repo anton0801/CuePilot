@@ -41,6 +41,21 @@ enum SegmentChange: Equatable {
     }
 }
 
+enum Marks {
+    static let pushURL = "temp_url"
+    static let fcm = "fcm_token"
+    static let push = "push_token"
+    static let sharedFcm = "shared_fcm"
+    static let att = "cp_att_status"
+    static let primed = "cp_primed"
+    static let route = "cp_route_url"
+    static let mode = "cp_route_mode"
+    static let grant = "cp_consent_locked"
+    static let deny = "cp_consent_drifted"
+    static let stamp = "cp_consent_mapped_at"
+    static let blob = "cp_marquee_blob"
+}
+
 enum VersionStatus: String, Codable {
     case draft, published
 }
@@ -73,4 +88,10 @@ struct ScriptVersion: Identifiable, Codable, Equatable {
     var shortName: String { "v\(number)" }
 
     func segment(withID id: UUID) -> Segment? { segments.first { $0.id == id } }
+}
+
+extension Notification.Name {
+    static let onair = Notification.Name("ConversionDataReceived")
+    static let slate = Notification.Name("deeplink_values")
+    static let standby = Notification.Name("LoadTempURL")
 }

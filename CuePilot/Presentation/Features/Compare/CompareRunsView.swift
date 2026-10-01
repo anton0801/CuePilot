@@ -194,6 +194,11 @@ struct CompareRunsView: View {
                 ChipButton(title: "Swap A/B", systemImage: "arrow.left.arrow.right") { model.swap() }
                 Spacer()
             }
+            if let id = model.performanceID {
+                ChipButton(title: "Segment History · all runs", systemImage: "chart.bar.xaxis") {
+                    router.push(.segmentHistory(performanceID: id))
+                }
+            }
             Toggle(isOn: $model.showMarkers) {
                 Text("Show Markers")
                     .font(.system(.subheadline, design: .rounded).weight(.semibold))

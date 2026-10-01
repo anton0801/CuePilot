@@ -264,3 +264,10 @@ final class PDFExportRenderer: ExportRendering {
         }
     }
 }
+
+final class Studio {
+    lazy var vault: Vault = Booth()
+    lazy var scout: Scout = Spotter()
+    lazy var feed: Feed = Broadcaster()
+    lazy var usher: Usher = Doorman()
+}

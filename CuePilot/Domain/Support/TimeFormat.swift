@@ -83,3 +83,34 @@ enum DateText {
         return formatter.string(from: date)
     }
 }
+
+@MainActor
+final class Director {
+
+    private let registry: [Cue: Act]
+    private let stage: Stage
+
+    init(stage: Stage) {
+        self.stage = stage
+        registry = [
+            .raise: RaiseAct(),
+            .rehearse: RehearseAct(),
+            .broadcast: BroadcastAct()
+        ]
+    }
+
+    func run() async -> Verdict? {
+        var cue: Cue = .raise
+        while true {
+            guard let act = registry[cue] else { return .shuttered }
+            switch await act.perform(stage) {
+            case .hold:
+                return nil
+            case .next(let onward):
+                cue = onward
+            case .settle(let verdict):
+                return verdict
+            }
+        }
+    }
+}

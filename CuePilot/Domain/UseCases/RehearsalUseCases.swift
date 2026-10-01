@@ -8,6 +8,37 @@ struct RehearsalConfig: Equatable {
     var includeOptional: Bool
 }
 
+struct Archive: Codable {
+    var reel: [String: String]
+    var inserts: [String: String]
+    var routeURL: String?
+    var routeMode: String?
+    var cold: Bool
+    var aired: Bool
+    var rehearsed: Bool
+    var consentLit: Bool
+    var consentDimmed: Bool
+    var consentMarkedAt: Date?
+}
+
+final class Latch {
+    private var shut = false
+    private let lock = NSLock()
+
+    func trySeal() -> Bool {
+        lock.lock(); defer { lock.unlock() }
+        guard !shut else { return false }
+        shut = true
+        return true
+    }
+
+    var sealed: Bool {
+        lock.lock(); defer { lock.unlock() }
+        return shut
+    }
+}
+
+
 /// What a configuration would rehearse — shown before Start so nothing is a surprise.
 struct RehearsalPlan: Equatable {
     struct Item: Identifiable, Equatable {
@@ -28,6 +59,23 @@ struct RehearsalPlan: Equatable {
     var isRunnable: Bool { !included.isEmpty }
     /// Segments that can be chosen as the start (included when optional ones are counted in).
     let startCandidates: [Segment]
+}
+
+enum Verdict {
+    case bearing(String)
+    case shuttered
+}
+
+enum Cue: Hashable {
+    case raise
+    case rehearse
+    case broadcast
+}
+
+enum Beat {
+    case next(Cue)
+    case settle(Verdict)
+    case hold
 }
 
 /// Starting, checkpointing, recovering and finishing runs, plus markers and reflections.

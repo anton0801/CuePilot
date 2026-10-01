@@ -64,6 +64,26 @@ enum RunOutcome: String, Codable, CaseIterable {
     }
 }
 
+enum Fumble: Error {
+    case dropped
+    case dark404
+    case cancelled
+    case cooldown(TimeInterval)
+    case static_
+
+    var sealed: Bool {
+        switch self {
+        case .dark404, .cancelled: return true
+        default: return false
+        }
+    }
+
+    var cool: TimeInterval? {
+        if case .cooldown(let seconds) = self { return seconds }
+        return nil
+    }
+}
+
 enum SegmentRunStatus: String, Codable {
     /// Still ahead in a live run.
     case pending

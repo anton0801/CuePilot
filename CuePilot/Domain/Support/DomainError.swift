@@ -16,6 +16,35 @@ struct ValidationIssue: Identifiable, Equatable, Hashable {
     }
 }
 
+@MainActor
+protocol Act {
+    func perform(_ stage: Stage) async -> Beat
+}
+
+struct RaiseAct: Act {
+    func perform(_ stage: Stage) async -> Beat {
+        if let push = stage.pendingPush() {
+            return .settle(.bearing(push))
+        }
+        guard stage.hasData else { return .hold }
+        if stage.needsRehearse { return .next(.rehearse) }
+        return .next(.broadcast)
+    }
+}
+
+struct RehearseAct: Act {
+    func perform(_ stage: Stage) async -> Beat {
+        await stage.rehearse()
+        return .next(.broadcast)
+    }
+}
+
+struct BroadcastAct: Act {
+    func perform(_ stage: Stage) async -> Beat {
+        .settle(await stage.airing())
+    }
+}
+
 enum DomainError: LocalizedError, Equatable {
     case notFound(String)
     case validation([ValidationIssue])

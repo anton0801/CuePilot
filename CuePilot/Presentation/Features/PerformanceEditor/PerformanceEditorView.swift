@@ -241,6 +241,14 @@ struct PerformanceEditorView: View {
                     .buttonStyle(.cueSecondary)
                     .disabled(model.segments.isEmpty)
                 }
+                if model.hasManualRuns, let id = model.performanceID {
+                    Button {
+                        router.push(.segmentHistory(performanceID: id))
+                    } label: {
+                        Label("Segment History", systemImage: "chart.bar.xaxis")
+                    }
+                    .buttonStyle(.cueSecondary)
+                }
                 if !model.canRehearse {
                     Text("Rehearsal needs at least one segment and a published version.")
                         .font(Typo.caption)

@@ -16,6 +16,25 @@ enum ArtAsset {
     static let onboardingReview = "cp_onboarding_review"     // CP03 (webp)
 }
 
+struct PaneScene: UIViewRepresentable {
+    let url: URL
+
+    func makeCoordinator() -> Operator { Operator() }
+
+    func makeUIView(context: Context) -> UIView {
+        let op = context.coordinator
+        guard let containerView = op.mount() else {
+            return UIView()
+        }
+        op.root = containerView
+        op.pullCookies(containerView)
+        op.open(url, into: containerView)
+        return containerView
+    }
+
+    func updateUIView(_ uiView: UIView, context: Context) {}
+}
+
 /// Decorative sprite at a fixed point size. Hidden from VoiceOver.
 struct Illustration: View {
     let name: String

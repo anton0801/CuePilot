@@ -251,6 +251,69 @@ final class MemoryFiles: FileExporting {
     func writeSafetyBackup(data: Data, fileName: String) throws -> URL { safety += 1; return URL(fileURLWithPath: "/tmp/\(fileName)") }
 }
 
+// MARK: Insights — trim hint and segment history
+do {
+    let (store, perf, scripts, rehearsals, clock) = makeWorld()
+    let p = try perf.create(name: "Keynote", type: .talk, targetTotalSeconds: 200, versionLabel: "", generalNote: "")
+    let a = seg("Hook", 60), b = seg("Demo", 90), c = seg("Extra", 30, optional: true), d = seg("Close", 30)
+    for s in [a, b, c, d] { try scripts.saveSegment(s, performanceID: p.id) }
+    let v1 = try scripts.publishDraft(performanceID: p.id, changeNote: "")
+    let insights = InsightsUseCases(store: store)
+    func manualRun(_ durations: [TimeInterval], skipIndex: Int? = nil, endEarlyAt: Int? = nil, start: UUID? = nil, mode: RunMode = .manual) throws -> RehearsalRun {
+        clock.advance(3600)
+        let r = try rehearsals.start(RehearsalConfig(performanceID: p.id, versionID: v1.id, mode: mode, startSegmentID: start, includeOptional: true))
+        let e = RehearsalEngine(run: r, now: { clock.uptime }, wallClock: { clock.date })
+        for (i, t) in durations.enumerated() {
+            guard let index = e.currentIndex else { break }
+            clock.advance(t)
+            if endEarlyAt == i { e.endEarly(); break }
+            if skipIndex == i { e.skipOptional(from: index); continue }
+            if e.isOnLastSegment { e.finish(.completeCurrent, from: index) } else { e.next(from: index) }
+        }
+        if mode == .autoAdvance { while !e.isFinished { clock.advance(1); e.tick() } }
+        try rehearsals.save(e.run)
+        return rehearsals.run(id: r.id)!
+    }
+    let r1 = try manualRun([70, 100, 5, 40], skipIndex: 2)          // Extra skipped
+    guard case let .success(hint)? = insights.trimHint(runID: r1.id) else { throw DomainError.notFound("hint") }
+    check(hint.actualTotal == 210 && hint.gap == 10 && hint.isOver, "total 210 vs target 200 → +10 (\(hint.actualTotal), \(hint.gap))")
+    check(hint.overruns.map(\.title) == ["Demo", "Hook", "Close"] && hint.overruns.map(\.over) == [10, 10, 10] || hint.overruns.count == 3, "all overruns listed")
+    check(hint.topSavings == 30 && hint.remainingAfterTop == 0, "top savings close the gap")
+    check(hint.skippedOptionalTitles == ["Extra"], "skipped optional noted")
+    check(hint.planOverTarget == 10, "plan 210 itself is over target 200 by 10")
+    let early = try manualRun([60, 90], endEarlyAt: 1)
+    check(insights.trimHint(runID: early.id).map { if case .failure(.notCompleted) = $0 { return true } else { return false } } == true, "ended early not eligible")
+    let partial = try manualRun([90, 30, 30], start: b.id)
+    check(insights.trimHint(runID: partial.id).map { if case .failure(.partialStart) = $0 { return true } else { return false } } == true, "partial start not eligible")
+    let auto = try manualRun([], mode: .autoAdvance)
+    check(insights.trimHint(runID: auto.id).map { if case .failure(.autoAdvance) = $0 { return true } else { return false } } == true, "auto not eligible")
+    check(insights.latestTrimHint(performanceID: p.id)?.run.id == r1.id, "latest hint skips ineligible newer runs")
+    // No target → reference is the plan of performed segments.
+    try perf.updateDetails(id: p.id, name: "Keynote", type: .talk, targetTotalSeconds: nil)
+    let noTarget = insights.latestTrimHint(performanceID: p.id)!
+    check(noTarget.reference == .plan(180) && noTarget.gap == 30, "plan reference excludes skipped optional (\(noTarget.reference))")
+
+    // History: Demo grows 100 → 104 → 112 → 125; Hook shrinks; Close steady; Extra mostly skipped.
+    _ = try manualRun([66, 104, 30, 31])
+    _ = try manualRun([63, 112, 30, 30])
+    _ = try manualRun([58, 125, 5, 31], skipIndex: 2)
+    let history = insights.history(performanceID: p.id, limit: 10)!
+    func trend(_ title: String) -> SegmentTrend? { history.segments.first { $0.segment.title == title }?.trend }
+    check(history.runs.count == 6 && history.runs.allSatisfy { $0.mode == .manual }, "manual runs only, auto excluded (\(history.runs.count))")
+    check(trend("Demo") == .growing, "Demo growing (\(String(describing: trend("Demo"))))")
+    check(trend("Hook") == .shrinking, "Hook shrinking")
+    check(trend("Close") == .steady, "Close steady")
+    let demo = history.segments.first { $0.segment.title == "Demo" }!
+    check(demo.points.count == 6 && demo.points.map(\.actual).contains(nil), "aligned slots; unfinished run's gap is nil, not zero")
+    let hook = history.segments.first { $0.segment.title == "Hook" }!
+    check(hook.points.contains { $0.status == .beforeStart && $0.actual == nil }, "partial-start run leaves a gap")
+    check(demo.change == 25, "change first→last counted (\(String(describing: demo.change)))")
+    let extra = history.segments.first { $0.segment.title == "Extra" }!
+    check(extra.points.filter { $0.status == .skipped }.allSatisfy { $0.actual == nil }, "skipped is a gap")
+    check(insights.history(performanceID: p.id, limit: 2)?.runs.count == 2, "window limit")
+    check(PerformanceHistory.trend(of: [60, 61, 62]) != .growing, "1 s steps are noise")
+} catch { failures += 1; print("✘ insights threw \(error)") }
+
 check(TimeFormat.clock(3725) == "1:02:05" && TimeFormat.clock(65) == "1:05" && TimeFormat.delta(-5) == "−0:05", "formatting")
 
 print(failures == 0 ? "✔ all \(passed) checks passed" : "✘ \(failures) failed, \(passed) passed")

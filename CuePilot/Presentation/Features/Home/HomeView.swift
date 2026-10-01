@@ -179,6 +179,15 @@ struct HomeView: View {
                 }
                 lastRunRow(summary)
             }
+            if let hint = model.trimHint {
+                TrimHintSummaryRow(hint: hint) {
+                    router.push(.segmentHistory(performanceID: summary.performance.id))
+                }
+            } else if model.hasManualRuns {
+                ChipButton(title: "Segment History", systemImage: "chart.bar.xaxis") {
+                    router.push(.segmentHistory(performanceID: summary.performance.id))
+                }
+            }
             if !summary.canRehearse {
                 NoticeBanner(text: summary.segmentCount == 0
                              ? "Add segments and publish a version to rehearse."

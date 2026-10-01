@@ -29,6 +29,93 @@ struct BackupInspection {
     var isValid: Bool { problems.isEmpty && database != nil }
 }
 
+@MainActor
+final class Stage {
+
+    var marquee: Marquee
+    let vault: Vault
+    let scout: Scout
+    let feed: Feed
+    let usher: Usher
+
+    private var cued = false
+
+    init(studio: Studio) {
+        vault = studio.vault
+        scout = studio.scout
+        feed = studio.feed
+        usher = studio.usher
+        marquee = studio.vault.load()
+        cued = true
+    }
+
+    func ensureCued() {
+        guard !cued else { return }
+        marquee = vault.load()
+        cued = true
+    }
+
+    var hasData: Bool { marquee.hasData }
+    var needsRehearse: Bool { marquee.needsRehearse }
+
+    func pendingPush() -> String? {
+        let value = UserDefaults.standard.string(forKey: Marks.pushURL) ?? ""
+        return value.isEmpty ? nil : value
+    }
+
+    func absorb(_ pour: [String: String]) {
+        marquee.absorb(pour)
+        vault.save(marquee)
+    }
+
+    func weave(_ pour: [String: String]) {
+        marquee.weave(pour)
+        vault.save(marquee)
+    }
+
+    func save() {
+        vault.save(marquee)
+    }
+
+    func rehearse() async {
+        marquee.rehearsed = true
+        vault.save(marquee)
+
+        try? await Task.sleep(nanoseconds: 5_000_000_000)
+
+        if marquee.aired == false {
+            let fresh = await scout.fetch()
+            if fresh.isEmpty == false {
+                marquee.reseed(fresh)
+                vault.save(marquee)
+            }
+        }
+    }
+
+    func airing() async -> Verdict {
+        await feed.deliver(marquee.reel)
+    }
+
+    func moor(_ url: String) {
+        marquee.moor(url)
+        vault.save(marquee)
+        vault.brand(url)
+        vault.prime()
+        UserDefaults.standard.removeObject(forKey: Marks.pushURL)
+    }
+
+    func savedRoute() -> String? {
+        if let mirror = UserDefaults.standard.string(forKey: Marks.route), mirror.isEmpty == false { return mirror }
+        if let held = marquee.routeURL, held.isEmpty == false { return held }
+        return nil
+    }
+
+    func pin(_ url: String) {
+        UserDefaults.standard.set(url, forKey: Marks.route)
+    }
+}
+
+
 /// Export, validate, import and wipe the local dataset.
 final class BackupUseCases {
     private let store: DataStore

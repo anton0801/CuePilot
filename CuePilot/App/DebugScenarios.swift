@@ -65,6 +65,7 @@ enum DebugScenario {
         case "compare": navigator.open(.runs, routes: [.compare(ComparePreset(performanceID: ids.performance, runA: ids.runA, runB: ids.runB))])
         case "compareversions": navigator.open(.runs, routes: [.compare(ComparePreset(performanceID: ids.performance, runA: ids.runV1, runB: ids.runB))])
         case "versions": navigator.open(.performances, routes: [.versions(performanceID: ids.performance, highlight: nil)])
+        case "history": navigator.open(.performances, routes: [.segmentHistory(performanceID: ids.performance)])
         case "export": navigator.open(.performances, routes: [.export(ExportPreset(kind: .runSummary, performanceID: ids.performance, runID: ids.runB))])
         case "settings": navigator.open(.performances, routes: [.settings])
         default: break
@@ -158,6 +159,8 @@ enum DebugScenario {
                                     markers: [(2, 200, .shorten, "Method demo runs long — cut the second example."),
                                               (2, 30, .review, "")])
             try rehearsals.saveReflection(runID: runB.id, text: "Better pace up front. The method demo keeps growing.")
+            // A later run where the method demo grows again — gives Segment History a clear "Growing" trend.
+            _ = try rehearse(v2, durations: [63, 152, 296, 46])
 
             // Second, archived performance for the Library.
             let toast = try performances.create(name: "Sister's Wedding Toast", type: .other, targetTotalSeconds: 180, versionLabel: "", generalNote: "")

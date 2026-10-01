@@ -15,6 +15,8 @@ final class HomeViewModel: ObservableObject {
     @Published private(set) var hasAnyPerformance = false
     @Published private(set) var activeCount = 0
     @Published private(set) var tip = ""
+    @Published private(set) var trimHint: TrimHint?
+    @Published private(set) var hasManualRuns = false
     @Published var alert: AlertMessage?
 
     private let container: AppContainer
@@ -39,7 +41,11 @@ final class HomeViewModel: ObservableObject {
         } else {
             liveRun = nil
         }
-        tip = FlickTips.tip(summary: summary, liveRun: liveRun?.run, lastReview: lastReview())
+        let performanceID = summary?.performance.id
+        trimHint = performanceID.flatMap(container.insights.latestTrimHint(performanceID:))
+        hasManualRuns = performanceID.map { container.insights.manualRunCount(performanceID: $0) > 0 } ?? false
+        let growing = performanceID.flatMap { container.insights.history(performanceID: $0, limit: 10) }?.growing.first
+        tip = FlickTips.tip(summary: summary, liveRun: liveRun?.run, lastReview: lastReview(), growing: growing)
     }
 
     private func lastReview() -> RunReview? {
@@ -58,7 +64,7 @@ final class HomeViewModel: ObservableObject {
 
 /// Short, factual hints from Flick. Never an assessment of the performance itself.
 enum FlickTips {
-    static func tip(summary: PerformanceSummary?, liveRun: RehearsalRun?, lastReview: RunReview?) -> String {
+    static func tip(summary: PerformanceSummary?, liveRun: RehearsalRun?, lastReview: RunReview?, growing: SegmentHistory? = nil) -> String {
         if let liveRun {
             return liveRun.interruptionCount > 0
                 ? "Your last run was cut off. It's saved at its last checkpoint — resume when you're back in position."
@@ -75,6 +81,9 @@ enum FlickTips {
         }
         if summary.runCount == 0 {
             return "Try a Manual Next run: tap Next when each part is really over."
+        }
+        if let growing {
+            return "“\(growing.segment.title)” has grown three runs in a row. Segment History shows where the time goes."
         }
         if let overrun = lastReview?.largestOverrun {
             return "Last run, “\(overrun.segment.title)” went \(TimeFormat.delta(overrun.deviation)) over plan. Compare runs to see if it keeps growing."

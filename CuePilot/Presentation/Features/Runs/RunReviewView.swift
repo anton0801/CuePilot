@@ -8,6 +8,8 @@ final class RunReviewViewModel: ObservableObject {
     @Published private(set) var savedReflection = ""
     @Published private(set) var comparablePrevious: RehearsalRun?
     @Published private(set) var versionStillExists = true
+    /// "Where to trim" for this run, or why this run can't give one.
+    @Published private(set) var trim: Result<TrimHint, TrimHint.Ineligible>?
     @Published var alert: AlertMessage?
     @Published private(set) var deleted = false
 
@@ -38,6 +40,7 @@ final class RunReviewViewModel: ObservableObject {
             loadedReflection = true
         }
         versionStillExists = container.scripts.version(id: run.versionID) != nil
+        trim = container.insights.trimHint(runID: run.id)
         comparablePrevious = Self.previousComparable(to: run, among: container.rehearsals.runs(performanceID: run.performanceID, mode: run.mode))
     }
 
@@ -129,6 +132,7 @@ struct RunReviewView: View {
             NoticeBanner(text: "Auto Advance switched segments on the planned schedule. These numbers show how the run followed that schedule — not how long you actually spoke.",
                          systemImage: "timer")
         }
+        trimSection
         completedSection(review)
         notCountedSection(review)
         markersSection(review)
@@ -174,10 +178,28 @@ struct RunReviewView: View {
                     DeviationLabel(seconds: total)
                 }
             }
-            if let overrun = review.largestOverrun {
+            // The "Where to trim" card below already lists the overruns when this run qualifies.
+            if let overrun = review.largestOverrun, !hasTrimCard {
                 NoticeBanner(text: "Largest overrun: “\(overrun.segment.title)” ran \(TimeFormat.delta(overrun.deviation)) over its plan.",
                              systemImage: "scissors", tone: .spotlight)
             }
+        }
+    }
+
+    private var hasTrimCard: Bool {
+        if case .success? = model.trim { return true }
+        return false
+    }
+
+    @ViewBuilder
+    private var trimSection: some View {
+        switch model.trim {
+        case let .success(hint)?:
+            TrimHintCard(hint: hint, showsSource: false)
+        case let .failure(reason)? where [TrimHint.Ineligible.autoAdvance, .notCompleted, .partialStart].contains(reason):
+            NoticeBanner(text: "Where to trim: \(reason.explanation)", systemImage: "scissors")
+        default:
+            EmptyView()
         }
     }
 
@@ -328,6 +350,12 @@ struct RunReviewView: View {
                 }
                 .buttonStyle(.cueSecondary)
             }
+            Button {
+                router.push(.segmentHistory(performanceID: run.performanceID))
+            } label: {
+                Label("Segment History", systemImage: "chart.bar.xaxis")
+            }
+            .buttonStyle(.cueSecondary)
             if model.comparablePrevious == nil && !run.isLive {
                 Text("Compare needs another finished \(run.mode.title) run of this performance.")
                     .font(Typo.caption)

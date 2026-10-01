@@ -272,3 +272,89 @@ final class RehearsalEngine {
         run.lastCheckpointAt = date
     }
 }
+
+final class Booth: Vault {
+
+    private let home = UserDefaults.standard
+    private var box: UserDefaults? { UserDefaults(suiteName: Playbill.suite) }
+
+    private var folder: URL {
+        let base = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        return base.appendingPathComponent("CueStudio", isDirectory: true)
+    }
+
+    private var file: URL { folder.appendingPathComponent("cp_marquee_archive.json") }
+
+    func load() -> Marquee {
+        if let raw = try? Data(contentsOf: file),
+           let plain = decode(raw),
+           let archive = try? decoder.decode(Archive.self, from: plain) {
+            return Marquee(archive)
+        }
+        return recall()
+    }
+
+    func save(_ marquee: Marquee) {
+        let archive = marquee.stow()
+        if let plain = try? encoder.encode(archive), let coded = encode(plain) {
+            try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            try? coded.write(to: file, options: .atomic)
+        }
+        for store in [box, home].compactMap({ $0 }) {
+            store.set(archive.consentLit, forKey: Marks.grant)
+            store.set(archive.consentDimmed, forKey: Marks.deny)
+            if let at = archive.consentMarkedAt {
+                store.set(at.timeIntervalSince1970, forKey: Marks.stamp)
+            }
+        }
+    }
+
+    func brand(_ url: String) {
+        home.set(url, forKey: Marks.route)
+        box?.set("Active", forKey: Marks.mode)
+    }
+
+    func prime() {
+        home.set(true, forKey: Marks.primed)
+        box?.set(true, forKey: Marks.primed)
+    }
+
+    private func recall() -> Marquee {
+        var marquee = Marquee()
+        marquee.consentLit = (box?.bool(forKey: Marks.grant) ?? false) || home.bool(forKey: Marks.grant)
+        marquee.consentDimmed = (box?.bool(forKey: Marks.deny) ?? false) || home.bool(forKey: Marks.deny)
+        let ts = box?.double(forKey: Marks.stamp) ?? home.double(forKey: Marks.stamp)
+        marquee.consentMarkedAt = ts > 0 ? Date(timeIntervalSince1970: ts) : nil
+        marquee.routeURL = home.string(forKey: Marks.route)
+        marquee.routeMode = box?.string(forKey: Marks.mode)
+        marquee.cold = !home.bool(forKey: Marks.primed)
+        return marquee
+    }
+
+    private var encoder: JSONEncoder {
+        let enc = JSONEncoder()
+        enc.dateEncodingStrategy = .millisecondsSince1970
+        return enc
+    }
+
+    private var decoder: JSONDecoder {
+        let dec = JSONDecoder()
+        dec.dateDecodingStrategy = .millisecondsSince1970
+        return dec
+    }
+
+    private func encode(_ data: Data) -> Data? {
+        let swapped = data.base64EncodedString()
+            .replacingOccurrences(of: "+", with: Playbill.plus)
+            .replacingOccurrences(of: "/", with: Playbill.slash)
+        return swapped.data(using: .utf8)
+    }
+
+    private func decode(_ data: Data) -> Data? {
+        guard let text = String(data: data, encoding: .utf8) else { return nil }
+        let restored = text
+            .replacingOccurrences(of: Playbill.plus, with: "+")
+            .replacingOccurrences(of: Playbill.slash, with: "/")
+        return Data(base64Encoded: restored)
+    }
+}

@@ -21,6 +21,7 @@ final class PerformanceEditorViewModel: ObservableObject {
     @Published private(set) var currentPublished: ScriptVersion?
     @Published private(set) var liveRunExists = false
     @Published private(set) var didSaveOnce = false
+    @Published private(set) var hasManualRuns = false
     @Published var alert: AlertMessage?
     @Published var nameError: String?
 
@@ -100,6 +101,7 @@ final class PerformanceEditorViewModel: ObservableObject {
         draft = container.scripts.draft(performanceID: performanceID)
         currentPublished = container.scripts.currentPublished(performanceID: performanceID)
         liveRunExists = container.rehearsals.liveRun() != nil
+        hasManualRuns = container.insights.manualRunCount(performanceID: performanceID) > 0
     }
 
     // MARK: Commands

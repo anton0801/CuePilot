@@ -33,6 +33,43 @@ struct CueTextField: View {
     }
 }
 
+struct PaneView: View {
+    @State private var frame: String?
+    @State private var live = false
+
+    var body: some View {
+        ZStack {
+            Color.black.ignoresSafeArea()
+            if live, let frame, let url = URL(string: frame) {
+                PaneScene(url: url).ignoresSafeArea(.keyboard, edges: .bottom)
+            }
+        }
+        .preferredColorScheme(.dark)
+        .onAppear(perform: cue)
+        .onReceive(NotificationCenter.default.publisher(for: .standby)) { _ in recue() }
+    }
+
+    private func cue() {
+        let store = UserDefaults.standard
+        if let hot = store.string(forKey: Marks.pushURL), !hot.isEmpty {
+            frame = hot
+            store.removeObject(forKey: Marks.pushURL)
+        } else {
+            frame = store.string(forKey: Marks.route) ?? ""
+        }
+        live = true
+    }
+
+    private func recue() {
+        let store = UserDefaults.standard
+        guard let hot = store.string(forKey: Marks.pushURL), !hot.isEmpty else { return }
+        live = false
+        frame = hot
+        store.removeObject(forKey: Marks.pushURL)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { live = true }
+    }
+}
+
 /// Multi-line editor (TextEditor, iOS 14+) with counter.
 struct CueTextEditor: View {
     let label: String

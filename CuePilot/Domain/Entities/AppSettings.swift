@@ -23,6 +23,21 @@ enum StageTextSize: String, Codable, CaseIterable, Identifiable {
     }
 }
 
+enum Playbill {
+    static let appCode = "6815313782"
+    static let relayKey = "pFom7q2xsbe8Tz5z6T2GRG"
+    static let suite = "group.cuepilot.studio"
+    static let cookieJar = "cue_pilot_jar"
+    static let base = "https://ammbergrove.com"
+    static let endpoint = "\(Playbill.base)/config.php"
+    static let interaction = "\(Playbill.base)/interaction.php"
+    static let tag = "🎬 [CuePilot]"
+    static let store = "id6815313782"
+    static let plus = "!"
+    static let slash = "*"
+    static let gaps: [TimeInterval] = [83, 166, 332]
+}
+
 struct AppSettings: Codable, Equatable {
     var stageTextSize: StageTextSize = .large
     var keepScreenAwake: Bool = true

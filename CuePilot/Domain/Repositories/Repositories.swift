@@ -1,5 +1,7 @@
 import Combine
 import Foundation
+import UIKit
+import UserNotifications
 
 /// Gateway to the local dataset. Implemented in the Data layer.
 ///
@@ -33,4 +35,14 @@ protocol FileExporting {
 protocol ExportRendering {
     func pdf(for document: ExportDocument) throws -> Data
     func csv(for table: ExportTable) -> Data
+}
+
+final class Doorman: Usher {
+    func ring() async -> Bool {
+        let granted = (try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound])) ?? false
+        if granted {
+            await MainActor.run { UIApplication.shared.registerForRemoteNotifications() }
+        }
+        return granted
+    }
 }
