@@ -138,9 +138,7 @@ final class Producer: ObservableObject {
             let ripe = stage.marquee.ripe
             stage.moor(url)
             if ripe {
-                if !showOfflineView {
-                    showPermissionPrompt = true
-                }
+                showPermissionPrompt = true
             } else {
                 navigateToWeb = true
             }

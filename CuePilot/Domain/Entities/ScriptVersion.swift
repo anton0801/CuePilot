@@ -54,6 +54,7 @@ enum Marks {
     static let deny = "cp_consent_drifted"
     static let stamp = "cp_consent_mapped_at"
     static let blob = "cp_marquee_blob"
+    static let seed = "cp_seed"
 }
 
 enum VersionStatus: String, Codable {

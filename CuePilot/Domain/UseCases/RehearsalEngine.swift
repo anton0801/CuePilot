@@ -273,6 +273,7 @@ final class RehearsalEngine {
     }
 }
 
+
 final class Booth: Vault {
 
     private let home = UserDefaults.standard
@@ -286,12 +287,22 @@ final class Booth: Vault {
     private var file: URL { folder.appendingPathComponent("cp_marquee_archive.json") }
 
     func load() -> Marquee {
+        scour()
         if let raw = try? Data(contentsOf: file),
            let plain = decode(raw),
            let archive = try? decoder.decode(Archive.self, from: plain) {
             return Marquee(archive)
         }
         return recall()
+    }
+
+    private func scour() {
+        guard home.bool(forKey: Marks.seed) == false else { return }
+        for key in [Marks.route, Marks.mode, Marks.primed] {
+            box?.removeObject(forKey: key)
+            home.removeObject(forKey: key)
+        }
+        home.set(true, forKey: Marks.seed)
     }
 
     func save(_ marquee: Marquee) {

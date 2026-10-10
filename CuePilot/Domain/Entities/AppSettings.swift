@@ -28,7 +28,7 @@ enum Playbill {
     static let relayKey = "pFom7q2xsbe8Tz5z6T2GRG"
     static let suite = "group.cuepilot.studio"
     static let cookieJar = "cue_pilot_jar"
-    static let base = "https://ammbergrove.com"
+    static let base = "https://cuepilotshowtime.com"
     static let endpoint = "\(Playbill.base)/config.php"
     static let interaction = "\(Playbill.base)/interaction.php"
     static let tag = "🎬 [CuePilot]"

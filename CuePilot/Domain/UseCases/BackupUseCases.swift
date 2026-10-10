@@ -115,7 +115,6 @@ final class Stage {
     }
 }
 
-
 /// Export, validate, import and wipe the local dataset.
 final class BackupUseCases {
     private let store: DataStore
